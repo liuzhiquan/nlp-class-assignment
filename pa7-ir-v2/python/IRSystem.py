@@ -272,14 +272,28 @@ class IRSystem:
 
         # Right now, this code simply gets the score by taking the Jaccard
         # similarity between the query and every document.
-        words_in_query = set()
+        words_in_query = {}
         for word in query:
-            words_in_query.add(word)
+            words_in_query[word] = 1 + math.log10(query.count(word))
 
         for d, doc in enumerate(self.docs):
-            words_in_doc = set(doc)
-            scores[d] = len(words_in_query.intersection(words_in_doc)) \
-                    / float(len(words_in_query.union(words_in_doc)))
+            words_in_doc = {}
+            for word in self.vocab:
+                words_in_doc[word] = self.get_tfidf(word, d)
+
+            # normalize
+            temp = 0.0
+            for tfidf in words_in_doc.values():
+                temp += tfidf * tfidf
+            temp = math.sqrt(temp)
+            for word, tfidf in words_in_doc.items():
+                words_in_doc[word] = tfidf / temp
+
+            # calculate cosine similarity
+            scores[d] = 0.0
+            for word in words_in_query:
+                scores[d] += words_in_query.get(word, 0) * \
+                    words_in_doc.get(word, 0) 
 
         # ------------------------------------------------------------------
 
