@@ -147,17 +147,23 @@ class IRSystem:
         #       word-document pair, but rather just for those pairs where a
         #       word actually occurs in the document.
         print "Calculating tf-idf..."
+        term_freq_mat = {}
+
+        for d, doc in enumerate(self.docs):
+            term_freq_mat[d] = {}
+            for word in doc:
+                term_freq_mat[d][word] = term_freq_mat[d].get(word, 0) + 1
+
+        N = len(self.docs)
         self.tfidf = {}
         for word in self.vocab:
             if word not in self.tfidf:
                 self.tfidf[word] = {}
-
             cur_docs = self.get_posting(word)
             df = len(cur_docs)
-            N = len(self.docs)
-            
+
             for d in cur_docs:
-                tf = self.docs[d].count(word)
+                tf = term_freq_mat[d][word]
                 weight = (1 + math.log10(tf)) * math.log10( \
                         1.0 * N / df)
                 self.tfidf[word][d] = weight
@@ -204,7 +210,8 @@ class IRSystem:
             for word in doc:
                 if not word in inv_index:
                     inv_index[word] = []
-                inv_index[word].append(i)
+                if not i in inv_index[word]:
+                    inv_index[word].append(i)
 
         self.inv_index = inv_index
 
