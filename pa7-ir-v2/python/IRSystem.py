@@ -149,20 +149,30 @@ class IRSystem:
         print "Calculating tf-idf..."
         self.tfidf = {}
         for word in self.vocab:
-            for d in range(len(self.docs)):
-                if word not in self.tfidf:
-                    self.tfidf[word] = {}
-                self.tfidf[word][d] = 0.0
+            if word not in self.tfidf:
+                self.tfidf[word] = {}
+
+            cur_docs = self.get_posting(word)
+            df = len(cur_docs)
+            N = len(self.docs)
+            
+            for d in cur_docs:
+                tf = self.docs[d].count(word)
+                weight = (1 + math.log10(tf)) * math.log10( \
+                        1.0 * N / df)
+                self.tfidf[word][d] = weight
 
         # ------------------------------------------------------------------
 
 
     def get_tfidf(self, word, document):
         # ------------------------------------------------------------------
-        # TODO: Return the tf-idf weigthing for the given word (string) and
+        # Return the tf-idf weigthing for the given word (string) and
         #       document index.
         tfidf = 0.0
-        # ------------------------------------------------------------------
+        if word in self.tfidf:
+            if document in self.tfidf[word]:
+                tfidf = self.tfidf[word][document]
         return tfidf
 
 
@@ -190,8 +200,11 @@ class IRSystem:
         #         * self.titles = List of titles
 
         inv_index = {}
-        for word in self.vocab:
-            inv_index[word] = []
+        for i, doc in enumerate(self.docs):
+            for word in doc:
+                if not word in inv_index:
+                    inv_index[word] = []
+                inv_index[word].append(i)
 
         self.inv_index = inv_index
 
@@ -205,7 +218,7 @@ class IRSystem:
         """
         # ------------------------------------------------------------------
         # TODO: return the list of postings for a word.
-        posting = []
+        posting = self.inv_index.get(word)
 
         return posting
         # ------------------------------------------------------------------
@@ -229,16 +242,15 @@ class IRSystem:
         Return an empty list if the query does not return any documents.
         """
         # ------------------------------------------------------------------
-        # TODO: Implement Boolean retrieval. You will want to use your
+        # Implement Boolean retrieval. You will want to use your
         #       inverted index that you created in index().
         # Right now this just returns all the possible documents!
-        docs = []
-        for d in range(len(self.docs)):
-            docs.append(d)
+        docs = set(range(len(self.docs)))
+        for word in query:
+            docs = docs & set(self.get_posting(word))
+        docs = sorted(list(docs))
 
-        # ------------------------------------------------------------------
-
-        return sorted(docs)   # sorted doesn't actually matter
+        return docs
 
 
     def rank_retrieve(self, query):
